@@ -1,6 +1,7 @@
 from typing import Tuple
 
 import numpy as np
+from matplotlib import pyplot as plt
 from sklearn import datasets, metrics
 from sklearn.model_selection import train_test_split
 from sklearn.utils import Bunch
@@ -61,25 +62,32 @@ if __name__ == '__main__':
     print(metrics.classification_report(y_test, predictions, zero_division=0))
 
     # custom images classification
-    custom_images = []
-    custom_flat_images = []
-    custom_predictions = []
+    custom_images_X = []
+    custom_predictions_y = []
 
     for i in range(10):
-        custom_predictions.append(i)
+        custom_predictions_y.append(i)
         custom_image = (load_custom_image(f'images/{i}.png'))
-        custom_images.append(custom_image)
-        custom_flat_images.append(custom_image.flatten())
+        custom_images_X.append(custom_image)
 
     for i in range(10):
-        custom_predictions.append(i)
+        custom_predictions_y.append(i)
         custom_image = (load_custom_image(f'images2/{i}.png'))
-        custom_images.append(custom_image)
-        custom_flat_images.append(custom_image.flatten())
+        custom_images_X.append(custom_image)
 
-    custom_images = np.array(custom_images)
+    custom_images = np.array(custom_images_X)
     custom_flat_images = custom_images.reshape(len(custom_images), -1)
 
     custom_image_predictions = model.predict(custom_flat_images)
     custom_image_predictions = np.argmax(custom_image_predictions, axis=1)
-    print(metrics.classification_report(custom_predictions, custom_image_predictions, zero_division=0))
+    print(metrics.classification_report(custom_predictions_y, custom_image_predictions, zero_division=0))
+
+    disp = metrics.ConfusionMatrixDisplay.from_predictions(y_test, predictions)
+    disp.figure_.suptitle("Confusion Matrix")
+    print(f"Confusion matrix:\n{disp.confusion_matrix}")
+    plt.show()
+
+    disp2 = metrics.ConfusionMatrixDisplay.from_predictions(custom_predictions_y, custom_image_predictions)
+    disp2.figure_.suptitle("Confusion Matrix")
+    print(f"Confusion matrix:\n{disp2.confusion_matrix}")
+    plt.show()
