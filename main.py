@@ -37,10 +37,33 @@ def load_custom_image(image_path: str) -> np.array:
     return rounded_image_np
 
 
+def load_custom_data() -> Tuple[np.array, np.array]:
+    # custom images classification
+    test_X = []
+    test_y = []
+
+    for i in range(10):
+        test_y.append(i)
+        custom_image = (load_custom_image(f'images/{i}.png'))
+        test_X.append(custom_image)
+
+    for i in range(10):
+        test_y.append(i)
+        custom_image = (load_custom_image(f'images2/{i}.png'))
+        test_X.append(custom_image)
+
+    test_X = np.array(test_X)
+    test_X = test_X.reshape(len(test_X), -1)
+
+    return test_X, test_y
+
+
 if __name__ == '__main__':
     digits = load_data()
 
     X_train, X_test, y_train, y_test = prepare_data(digits, test_size=0.12)
+
+    print("X_train.shape[1]", X_train.shape[1])
 
     model = Sequential([
         Input(shape=(X_train.shape[1],)),
@@ -61,31 +84,17 @@ if __name__ == '__main__':
     # result
     print(metrics.classification_report(y_test, predictions, zero_division=0))
 
-    # custom images classification
-    custom_images_X = []
-    custom_predictions_y = []
-
-    for i in range(10):
-        custom_predictions_y.append(i)
-        custom_image = (load_custom_image(f'images/{i}.png'))
-        custom_images_X.append(custom_image)
-
-    for i in range(10):
-        custom_predictions_y.append(i)
-        custom_image = (load_custom_image(f'images2/{i}.png'))
-        custom_images_X.append(custom_image)
-
-    custom_images = np.array(custom_images_X)
-    custom_flat_images = custom_images.reshape(len(custom_images), -1)
-
-    custom_image_predictions = model.predict(custom_flat_images)
-    custom_image_predictions = np.argmax(custom_image_predictions, axis=1)
-    print(metrics.classification_report(custom_predictions_y, custom_image_predictions, zero_division=0))
-
     disp = metrics.ConfusionMatrixDisplay.from_predictions(y_test, predictions)
     disp.figure_.suptitle("Confusion Matrix")
     print(f"Confusion matrix:\n{disp.confusion_matrix}")
     plt.show()
+
+    # custom images classification
+    custom_images_X, custom_predictions_y = load_custom_data()
+
+    custom_image_predictions = model.predict(custom_images_X)
+    custom_image_predictions = np.argmax(custom_image_predictions, axis=1)
+    print(metrics.classification_report(custom_predictions_y, custom_image_predictions, zero_division=0))
 
     disp2 = metrics.ConfusionMatrixDisplay.from_predictions(custom_predictions_y, custom_image_predictions)
     disp2.figure_.suptitle("Confusion Matrix")
