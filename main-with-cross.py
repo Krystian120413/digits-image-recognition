@@ -1,9 +1,8 @@
 from typing import Tuple
-
 import numpy as np
 from matplotlib import pyplot as plt
 from sklearn import datasets, metrics
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, KFold
 from sklearn.utils import Bunch
 from PIL import Image
 from tensorflow.keras import Sequential
@@ -15,9 +14,7 @@ def load_data() -> Bunch:
 
 
 def prepare_data(data: Bunch, shuffle=False, test_size=0.15) -> Tuple[np.array, np.array, np.array, np.array]:
-
     images = data.images.reshape(len(data.images), -1)
-
     return train_test_split(images, data.target, test_size=test_size, shuffle=shuffle)
 
 
@@ -65,6 +62,35 @@ if __name__ == '__main__':
 
     print("X_train.shape[1]", X_train.shape[1])
 
+    # Cross-validation setup
+    kfold = KFold(n_splits=5, shuffle=True)
+    cv_scores = []
+
+    for train_idx, val_idx in kfold.split(X_train):
+        X_train_fold, X_val_fold = X_train[train_idx], X_train[val_idx]
+        y_train_fold, y_val_fold = y_train[train_idx], y_train[val_idx]
+
+        model = Sequential([
+            Input(shape=(X_train.shape[1],)),
+            Dense(128, activation='sigmoid'),
+            Dense(64, activation='relu'),
+            Dense(10, activation='softmax'),
+        ])
+
+        model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+
+        # Training
+        model.fit(X_train_fold, y_train_fold, epochs=40, batch_size=32, validation_data=(X_val_fold, y_val_fold),
+                  verbose=0)
+
+        # Evaluation
+        val_loss, val_accuracy = model.evaluate(X_val_fold, y_val_fold, verbose=0)
+        cv_scores.append(val_accuracy)
+        print(f"Fold Validation Accuracy: {val_accuracy}")
+
+    print(f"Cross-Validation Accuracy: {np.mean(cv_scores)}")
+
+    # Test final model on test data
     model = Sequential([
         Input(shape=(X_train.shape[1],)),
         Dense(128, activation='sigmoid'),
@@ -73,16 +99,11 @@ if __name__ == '__main__':
     ])
 
     model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
-
-    # training
     model.fit(X_train, y_train, epochs=40, batch_size=32, validation_split=0.1)
-    print("--->", y_train.shape)
 
-    # test
     predictions = model.predict(X_test)
     predictions = np.argmax(predictions, axis=1)
 
-    # result
     print(metrics.classification_report(y_test, predictions, zero_division=0))
 
     disp = metrics.ConfusionMatrixDisplay.from_predictions(y_test, predictions)
@@ -90,7 +111,7 @@ if __name__ == '__main__':
     print(f"Confusion matrix:\n{disp.confusion_matrix}")
     plt.show()
 
-    # custom images classification
+    # Custom images classification
     custom_images_X, custom_predictions_y = load_custom_data()
 
     custom_image_predictions = model.predict(custom_images_X)
@@ -101,9 +122,3 @@ if __name__ == '__main__':
     disp2.figure_.suptitle("Confusion Matrix")
     print(f"Confusion matrix:\n{disp2.confusion_matrix}")
     plt.show()
-
-    # img = load_custom_image('1.png')
-    # print(img)
-    # img = (np.array([img]))
-    # img = img.reshape(1, -1)
-    # print(np.argmax(model.predict(img)))
